@@ -36,4 +36,27 @@ describe("splitCents", () => {
     const shares = splitCents(2000, ["a", "b"]);
     expect(sumCents(Object.values(shares))).toBe(2000);
   });
+
+  test("gives the leftover cent to the first member", () => {
+    expect(splitCents(1000, ["a", "b", "c"])).toEqual({ a: 334, b: 333, c: 333 });
+  });
+
+  test("gives multiple leftover cents to the first members in order", () => {
+    expect(splitCents(1002, ["a", "b", "c", "d"])).toEqual({ a: 251, b: 251, c: 250, d: 250 });
+  });
+
+  test("shares always sum to the total", () => {
+    expect(splitCents(101, ["a", "b", "c", "d", "e"])).toEqual({ a: 21, b: 20, c: 20, d: 20, e: 20 });
+    for (let n = 1; n <= 7; n++) {
+      const ids = Array.from({ length: n }, (_, i) => `m${i}`);
+      for (let total = 0; total <= 1000; total++) {
+        const shares = splitCents(total, ids);
+        expect(sumCents(Object.values(shares))).toBe(total);
+      }
+    }
+  });
+
+  test("throws when splitting among zero members", () => {
+    expect(() => splitCents(1000, [])).toThrow("cannot split among zero members");
+  });
 });
