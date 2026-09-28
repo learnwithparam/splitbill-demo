@@ -24,6 +24,17 @@ comment or review, or a dashboard button (which posts the same comment). Only OW
 COLLABORATOR count. A PR is a draft while the factory works and is marked ready for review when it hands
 over to you.
 
+## Checkpoints
+
+Each session in `teach/sessions.json` (in the `factory` repo) names an immutable `checkpoint/<id>` tag
+here, the exact starting state its demo steps and seeded issues run against, kept stable even as `main`
+moves on. A participant preparing for one session checks it out instead of `main`:
+
+```bash
+git fetch --tags
+git checkout checkpoint/lightning-3     # or module-1, module-2, ...
+```
+
 ## Live sequence
 
 | Step | Issue (by title) | Human action, and where | What you see |
