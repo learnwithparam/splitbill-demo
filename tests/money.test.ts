@@ -36,4 +36,27 @@ describe("splitCents", () => {
     const shares = splitCents(2000, ["a", "b"]);
     expect(sumCents(Object.values(shares))).toBe(2000);
   });
+
+  test("gives leftover cents to the first members", () => {
+    expect(splitCents(1000, ["a", "b", "c"])).toEqual({ a: 334, b: 333, c: 333 });
+  });
+
+  test("shares always sum to the total for uneven splits", () => {
+    const cases: Array<[number, string[]]> = [
+      [1000, ["a", "b", "c"]],
+      [101, ["a", "b", "c", "d", "e"]],
+      [1, ["a", "b", "c"]],
+      [2, ["a", "b", "c"]],
+    ];
+    for (const [total, members] of cases) {
+      const values = Object.values(splitCents(total, members));
+      expect(sumCents(values)).toBe(total);
+      expect(Math.max(...values) - Math.min(...values)).toBeLessThanOrEqual(1);
+      expect(values.every(Number.isInteger)).toBe(true);
+    }
+  });
+
+  test("throws when splitting among zero members", () => {
+    expect(() => splitCents(1000, [])).toThrow("cannot split among zero members");
+  });
 });
