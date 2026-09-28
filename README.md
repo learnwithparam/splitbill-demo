@@ -7,7 +7,7 @@ transfers.
 ## What it does
 
 - Groups of members, each with a share token.
-- Expenses: a payer, an amount in cents, and who the cost is split among.
+- Expenses: a payer, an amount in cents, and the members who share the cost.
 - Balances: what each member paid minus what they owe.
 - Settle up: the minimal set of transfers that zeroes every balance.
 - CSV export of a group's expenses.
