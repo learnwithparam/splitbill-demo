@@ -139,3 +139,20 @@ path; the holdout test catches it directly (confirmed in a throwaway worktree: t
 non-zero exit with the exact failing assertion). In a real run that failure feeds the existing reject-and-
 rebuild loop and escalates to `factory:needs-human` after `MAX_VERIFY_REJECTS`, the same as an AI-verifier
 reject.
+
+A second holdout, `.factory/holdout/csv-export.holdout.test.ts`, targets issue #11 (CSV export leaking raw
+cents instead of a zero-padded decimal). Running `factory run --issue 11` live produced a real, unplanned
+`factory:needs-human` outcome, but not through the reject-rebuild path above: the verdict was `uncertain`,
+not `reject`. AC-1 to AC-3 (the build's own tests, including the exact zero-pad case the holdout also checks)
+all passed, and `factory-verify`'s revert-and-reprove step confirmed the fix - reverting `src/csv.ts` to base
+made the new tests fail with the raw-cents values, restoring it made them pass again. What tripped `uncertain`
+was AC-4, the gate line itself: `gate.json`'s recorded tree (`af942b4`) no longer matched `HEAD^{tree}`
+(`328d1d0`) by the time verify ran, because the branch had picked up the second holdout file being merged to
+`main` in between - a tree difference limited to `.factory/holdout/**`, nothing in `src/` or `tests/`. Per
+`factory-verify/SKILL.md`'s own rule ("if the tree differs... the evidence is stale: report uncertain"), the
+verifier declined to trust the stale `gate.json` line, could not re-run `.factory/gates.sh` itself (the
+sandbox blocks execution under `.factory/**`), and instead reproduced each gate command by hand (typecheck,
+`bun test`, skills validation) - which matched, but on a rebuilt tree it can't certify as the one `gates.sh`
+graded. It escalated rather than guess. This is the harness working as designed: a correct fix still goes to
+a human when the evidence backing it goes stale, which is a real edge of the same "when the factory stops"
+guarantee the reject-rebuild loop gives you, not a failure of it.
