@@ -9,14 +9,14 @@ Setup changes (config, charter, skills, CI) and demo output are handled differen
 force-pushes `main` back to the `baseline` tag and drops anything merged after it:
 
 1. Merge any setup PR into `main`.
-2. `bin/factory rebaseline --repo-dir ../splitbill` moves the tag onto the new `main`, keeping the setup.
-3. `bin/factory reset --repo-dir ../splitbill --dry-run`, then without `--dry-run`. The dry-run lists every
+2. `bin/factory rebaseline --repo-dir ../splitbill-demo` moves the tag onto the new `main`, keeping the setup.
+3. `bin/factory reset --repo-dir ../splitbill-demo --dry-run`, then without `--dry-run`. The dry-run lists every
    `drop-commit`; that list should be empty.
 
 ```bash
 cd ../factory
-bin/factory doctor --repo-dir ../splitbill --fix
-make up REPO_DIR=../splitbill          # runner + dashboard on http://localhost:4100
+bin/factory doctor --repo-dir ../splitbill-demo --fix
+make up REPO_DIR=../splitbill-demo          # runner + dashboard on http://localhost:4100
 ```
 
 The runner polls every 15 seconds. All human input is GitHub state: a label, an issue comment, a PR
@@ -34,7 +34,7 @@ over to you.
 | 4 | "Upgrade hono 3.12.12 to 4.x" | high risk plan: comment `/factory cancel` | issue closed, worktree removed |
 | 5 | "Any group member can delete any other member's expense" | none: it needs a protected path | refused at triage, nothing built |
 | 6 | "Make settling up easier" | the agent asks a question: answer in the dashboard, or as a plain issue comment | resumes at the stage that asked |
-| 7 | none | `bin/factory scan --repo-dir ../splitbill` | files the nanoid advisory as an issue |
+| 7 | none | `bin/factory scan --repo-dir ../splitbill-demo` | files the nanoid advisory as an issue |
 
 ## Paths you cannot force live
 
@@ -52,7 +52,7 @@ untested.
 
 `main` requires a code-owner approval and the runner posts as you, so you cannot approve a factory PR
 yourself. Merge one with an admin bypass (`gh pr merge <n> --squash --admin`), then run
-`bin/factory reset --repo-dir ../splitbill`: the dry-run lists that merge as a `drop-commit`, and the real
+`bin/factory reset --repo-dir ../splitbill-demo`: the dry-run lists that merge as a `drop-commit`, and the real
 reset puts `main` back on the baseline. The factory never merges.
 
 `main` is protected, so rewinding it needs "Allow force pushes" on for you (Settings, Branches). Turn it on
@@ -65,12 +65,12 @@ Each section names one thing to show for that factory release. Run them from `..
 ### v2.3: the boundary tells the truth
 
 Label "README has no run steps" `factory:ready`, then comment `/factory cancel` while it waits for plan approval.
-The issue closes, the PR (if any) closes, and the worktree is gone. Then `bin/factory doctor --repo-dir ../splitbill --json`
+The issue closes, the PR (if any) closes, and the worktree is gone. Then `bin/factory doctor --repo-dir ../splitbill-demo --json`
 shows every check and exits 4 if one fails.
 
 ### v2.4: the cockpit
 
-`bin/factory inbox --repo-dir ../splitbill` lists what waits on you. Acting from the dashboard Inbox or with
+`bin/factory inbox --repo-dir ../splitbill-demo` lists what waits on you. Acting from the dashboard Inbox or with
 `bin/factory inbox 12 approve` posts the same `/factory approve` comment you would type. `bin/factory logs 12 --follow`
 tails the run.
 
@@ -87,5 +87,55 @@ links the skills into that agent's own directory.
 
 ### v2.6.1: presets that work on first use
 
-`bin/factory verify-agent <name> --repo-dir ../splitbill --issue <N>` runs one issue on that agent and records a fixture.
+`bin/factory verify-agent <name> --repo-dir ../splitbill-demo --issue <N>` runs one issue on that agent and records a fixture.
 Only Claude is verified by the maintainers; the rest say "Verified by participants: not yet" until someone does.
+
+### v2.6.2: any repo, safely
+
+State lives under `~/.factory/<owner>/<repo>/`, so splitbill-demo and lwp-website (or any repo you point
+`--repo-dir` at) share one binary without colliding. `bin/factory doctor --repo-dir <dir>` is safe to run on a
+repo, like lwp-website, that has never opted into `reset`.
+
+### v2.7.0: one machine, priced and capped
+
+`.factory/config.json`'s `routes` can send `bug`/`feature`/`docs`/`security`/`dependency` issues to different
+agents per stage; `FACTORY_SLOTS` and `spend.perIssueUsd`/`dailyUsd` are shared across every repo one machine
+watches, not per repo. A plan can set `"proof": "check"` to prove non-test work (a docs page, a blog post) by
+naming commands instead of writing a failing test first.
+
+### v2.8.0: merge-policy, off until you turn it on
+
+`.factory/config.json`'s `merge.policy` is `"off"` by default, `"dry-run"` posts an audit comment without
+merging, `"auto"` merges once every gate holds and the diff fits `merge.autoPaths`/`maxFiles`/`maxLines`.
+splitbill-demo and lwp-website both stay on the default; nothing here merges on its own.
+
+### v2.9.0: the review inbox
+
+`bin/factory inbox --repo-dir <dir>` lists what's waiting on you across every repo the factory watches, not
+just one. The dashboard's review panel shows a PR's diff, CI status, gate evidence and verify verdict without
+opening GitHub, with an "Approve and merge" button for the operator's own authority.
+
+### v2.10.0: memory across runs
+
+Every finished issue gets a read-only retro after its outcome, proposing at most one lesson for
+`.factory/memory/lessons.md` (capped at 8 KiB, injected into every stage's context) or one skill edit.
+`bin/factory learn --repo-dir <dir>` batches whatever's pending into its own PR; it never merges itself.
+
+### v2.11.0: the holdout guarantee
+
+`.factory/config.json`'s `holdout: { paths, cmd }` names a test suite no stage's agent ever sees:
+`Git.excludeFromSparseCheckout` hides the paths from the worktree the moment it's created, and only the verify
+stage runs `cmd`, against a scratch copy with those paths force-restored from `origin/main`. splitbill-demo's
+first holdout test, `.factory/holdout/settle-up.holdout.test.ts`, checks that `settleUp()`'s transfers zero out
+every member's balance. Run it directly with:
+
+```bash
+bun test ./.factory/holdout/settle-up.holdout.test.ts
+```
+
+A build that plants a regression in `src/balances.ts` (for example, dropping `Math.min(creditor.amount,
+debtor.amount)` to just `creditor.amount`) can still pass its own `gates.sh` if nothing else exercises that
+path; the holdout test catches it directly (confirmed in a throwaway worktree: the holdout runner reported a
+non-zero exit with the exact failing assertion). In a real run that failure feeds the existing reject-and-
+rebuild loop and escalates to `factory:needs-human` after `MAX_VERIFY_REJECTS`, the same as an AI-verifier
+reject.
