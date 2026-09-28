@@ -42,6 +42,10 @@
     ".agents/**",
     ".github/**"
   ],
+  "holdout": {
+    "paths": [".factory/holdout/settle-up.holdout.test.ts"],
+    "cmd": "bun test ./.factory/holdout/settle-up.holdout.test.ts"
+  },
   "riskPolicy": {
     "autoApproveLowRisk": true
   },
