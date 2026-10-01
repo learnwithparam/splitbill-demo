@@ -69,90 +69,82 @@ reset puts `main` back on the baseline. The factory never merges.
 `main` is protected, so rewinding it needs "Allow force pushes" on for you (Settings, Branches). Turn it on
 first; if it is off the reset fails on its first push and changes nothing. Turn it off again afterwards.
 
-## Lightning-2: step by step (v2.12.0 run, 2026-10-01)
+## Lightning-2: step by step (v2.12.3 run, 2026-10-01)
 
-A real run of `teach/lightning-2.md` from software-factory, on runner v2.12.0. The links open the exact
+A real run of `teach/lightning-2.md` from software-factory, on runner v2.12.3. The links open the exact
 issues and PRs from this run. `reset` closed them afterwards and reseeded the tickets under new numbers,
 but they stay readable on GitHub. Screenshots are in `docs/demo/lightning-2/`.
 
 | Ticket | Issue | PR | Outcome |
 |---|---|---|---|
-| README has no run steps or CLI example | [#46](https://github.com/learnwithparam/splitbill-demo/issues/46) | [#54](https://github.com/learnwithparam/splitbill-demo/pull/54) | PR opened, then a revise that changed nothing (bug 3) |
-| Splitting $10.00 three ways loses a cent | [#47](https://github.com/learnwithparam/splitbill-demo/issues/47) | [#53](https://github.com/learnwithparam/splitbill-demo/pull/53) | PR ready, verdict pass |
-| CSV export shows raw cents | [#48](https://github.com/learnwithparam/splitbill-demo/issues/48) | [#55](https://github.com/learnwithparam/splitbill-demo/pull/55) | operator takeover mid-build, then PR ready |
-| Any group member can delete any other member's expense | [#50](https://github.com/learnwithparam/splitbill-demo/issues/50) | none | refused at triage: protected path |
-| Upgrade hono 3.12.12 to 4.x | [#51](https://github.com/learnwithparam/splitbill-demo/issues/51) | none | high-risk plan, cancelled |
+| README has no run steps or CLI example | [#73](https://github.com/learnwithparam/splitbill-demo/issues/73) | [#80](https://github.com/learnwithparam/splitbill-demo/pull/80) | PR ready, then `/factory revise` added a third commit to the same PR |
+| Splitting $10.00 three ways loses a cent | [#74](https://github.com/learnwithparam/splitbill-demo/issues/74) | [#81](https://github.com/learnwithparam/splitbill-demo/pull/81) | money is high risk at triage, so a human approved the plan; merged as the deliver step |
+| CSV export shows raw cents | [#75](https://github.com/learnwithparam/splitbill-demo/issues/75) | [#82](https://github.com/learnwithparam/splitbill-demo/pull/82) | verify pass on the first try |
+| Expense search leaks other groups' expenses | [#76](https://github.com/learnwithparam/splitbill-demo/issues/76) | [#83](https://github.com/learnwithparam/splitbill-demo/pull/83) | operator takeover mid-build, handback, verify pass after an operator check |
+| Any group member can delete any other member's expense | [#77](https://github.com/learnwithparam/splitbill-demo/issues/77) | none | refused at triage: protected path |
+| Upgrade hono 3.12.12 to 4.x | [#78](https://github.com/learnwithparam/splitbill-demo/issues/78) | none | high-risk plan, cancelled |
 
 ### Step 0: start clean
 
 ```bash
 bin/factory reset --repo-dir ../splitbill-demo
 bin/factory doctor --repo-dir ../splitbill-demo
-teach/demo/lightning-2.sh --tmux up       # watch + dashboard on :4100, one tmux window per issue
+make demo                                 # tmux layout: watch + dashboard on :4100
 ```
 
 In `splitbill-demo/`, run `git switch -c my-feature` and leave one unstaged edit in `README.md`.
 
 ### Step 1: a worktree for every task
 
-Label [#46](https://github.com/learnwithparam/splitbill-demo/issues/46) and
-[#47](https://github.com/learnwithparam/splitbill-demo/issues/47) `factory:ready`. Both are claimed and run
-in parallel, each in its own worktree on its own `factory/issue-N` branch.
+Label [#73](https://github.com/learnwithparam/splitbill-demo/issues/73) and
+[#74](https://github.com/learnwithparam/splitbill-demo/issues/74) `factory:ready`. Both are claimed within one
+poll, each in its own worktree on its own `factory/issue-N` branch, beside your `my-feature` checkout:
 
-![Two issues on the line at once](docs/demo/lightning-2/dash-01-line-two-worktrees.png)
-![Runs page with both worktrees](docs/demo/lightning-2/dash-01-runs-two-worktrees.png)
+![Two worktrees beside my-feature](docs/demo/lightning-2/01-two-worktrees.png)
+![The line with both issues mid-flight](docs/demo/lightning-2/04-line-midflight.png)
 
-Triage and plan land on the issue as comments:
-
-![#46 triage](docs/demo/lightning-2/gh-46-triage.png)
-![#46 plan](docs/demo/lightning-2/gh-46-plan.png)
-
-Then label [#51](https://github.com/learnwithparam/splitbill-demo/issues/51) (hono). Its plan is high risk,
+Then label [#78](https://github.com/learnwithparam/splitbill-demo/issues/78) (hono). Its plan is high risk,
 so it stops at `factory:awaiting-approval`. Comment `/factory cancel`: the issue closes, its worktree is
-removed, and the `factory/issue-51` branch is kept.
+removed, and the `factory/issue-78` branch is kept.
 
-![#51 high-risk plan](docs/demo/lightning-2/gh-51-plan-high-risk.png)
-![/factory cancel](docs/demo/lightning-2/gh-51-cancel-command.png)
-![Cancelled, branch kept](docs/demo/lightning-2/gh-51-cancelled.png)
+![#78 cancelled](docs/demo/lightning-2/06-hono-cancelled.png)
 
 ### Step 2: sandbox boundaries
 
-Show what bounds an agent: [.factory/config.json](https://github.com/learnwithparam/splitbill-demo/blob/main/.factory/config.json)
-(`agentCommands`, gates, `protectedPaths`) and
-[.claude/hooks/guard-paths.sh](https://github.com/learnwithparam/splitbill-demo/blob/main/.claude/hooks/guard-paths.sh).
+`jq '{protectedPaths, agentCommands, maxBudgetUsd, concurrency, holdout}' .factory/config.json` shows what
+bounds an agent:
 
-![config.json](docs/demo/lightning-2/gh-config.png)
-![guard-paths.sh](docs/demo/lightning-2/gh-guard-paths.png)
+![Boundaries in config.json](docs/demo/lightning-2/02-boundaries.png)
 
-Label [#50](https://github.com/learnwithparam/splitbill-demo/issues/50). The fix needs
+Label [#77](https://github.com/learnwithparam/splitbill-demo/issues/77). The fix needs
 `src/auth/permissions.ts`, a protected path, so triage refuses it. Nothing is planned or built.
 
-![#50 refused at triage](docs/demo/lightning-2/gh-50-triage-refused.png)
+![#77 refused at triage](docs/demo/lightning-2/05-idor-refused.png)
 
 ### Step 3: one execution harness
 
-Follow #46 and #47 through build, verify and PR. While they run, the line shows each stage live, and
-anything waiting on a human collects in the inbox.
+Follow #73 and #74 through plan, build, verify and PR. #74 touches money, so triage rates it high risk and
+its plan waits for `bin/factory inbox 74 approve --repo learnwithparam/splitbill-demo`. Anything waiting on
+a human collects in the inbox:
 
-![Verify running](docs/demo/lightning-2/dash-02-line-verifying.png)
-![Inbox: the hono plan and a parked issue](docs/demo/lightning-2/dash-03-inbox-hono-and-parked.png)
+![Inbox](docs/demo/lightning-2/03-inbox.png)
 
-Both verdicts are posted on the issue:
+[PR #80](https://github.com/learnwithparam/splitbill-demo/pull/80) closes #73 and carries the plan, gate
+evidence, verdict and the "Factory run" table. Each verify row shows its verdict:
 
-![#46 verdict](docs/demo/lightning-2/gh-46-verdict.png)
-![#47 verdict](docs/demo/lightning-2/gh-47-verdict.png)
+![PR #80 summary](docs/demo/lightning-2/07-pr-80-summary.png)
+![PR #80 run table](docs/demo/lightning-2/08-pr-80-run-table.png)
 
-[PR #53](https://github.com/learnwithparam/splitbill-demo/pull/53) closes #47 and carries the plan, gate
-evidence, verdict, risk and the "Factory run" table:
+On PR #80, comment `/factory revise add a curl example for GET /api/groups`. The PR goes back to draft,
+build runs again, and the same PR gains a third commit (`189563e`) instead of a second PR:
 
-![PR #53 body](docs/demo/lightning-2/gh-pr53-body.png)
+![PR #80 after the revise](docs/demo/lightning-2/10-pr-80-revise-commit.png)
 
-On [PR #54](https://github.com/learnwithparam/splitbill-demo/pull/54), comment
-`/factory revise add a curl example for GET /api/groups`:
+[PR #81](https://github.com/learnwithparam/splitbill-demo/pull/81) (the cent) and
+[PR #82](https://github.com/learnwithparam/splitbill-demo/pull/82) (CSV, verify pass on the first try):
 
-![/factory revise on PR #54](docs/demo/lightning-2/gh-pr54-revise.png)
-
-On v2.12.0 this reran build, but nothing changed. Bug 3 below has the cause.
+![PR #81 summary](docs/demo/lightning-2/11-pr-81-summary.png)
+![PR #82 run table](docs/demo/lightning-2/12-pr-82-run-table.png)
 
 ### Step 4: your branch stays isolated
 
@@ -167,45 +159,84 @@ git worktree list
 You are still on `my-feature` with the one edit, and every factory worktree sits beside your checkout under
 `~/.factory/`.
 
-![my-feature untouched](docs/demo/lightning-2/tmux-11-my-branch-untouched.png)
+![my-feature untouched](docs/demo/lightning-2/09-my-feature-untouched.png)
 
 ### Step 5: watch and take over
 
-Label [#48](https://github.com/learnwithparam/splitbill-demo/issues/48). Mid-build, run
-`bin/factory takeover 48`. The issue's Claude session resumes in your terminal, and the issue says so:
+Three open factory PRs pause the line (`STOP_IF: 3 factory PRs open in review`), so merge one first: this
+run merged PR #81. Then label [#76](https://github.com/learnwithparam/splitbill-demo/issues/76), approve its
+plan, and mid-build run:
 
-![Taken over](docs/demo/lightning-2/gh-48-takeover.png)
+```bash
+bin/factory takeover 76 --repo-dir ../splitbill-demo
+```
 
-Steer it ("add a test that a 1-cent expense exports as 0.01"), then `/exit`. The handback posts
-`/factory retry`, and the factory resumes at build with the worktree as you left it:
+The build stops and its Claude session resumes in your terminal:
 
-![Handback](docs/demo/lightning-2/gh-48-handback.png)
+![Takeover resumed](docs/demo/lightning-2/13-takeover-resumed.png)
 
-[PR #55](https://github.com/learnwithparam/splitbill-demo/pull/55)'s "Factory run" table records the
-takeover as its own build row:
+Steer it ("the quote test also asserts there is no error field"). It finishes green; `/exit` hands back with
+`/factory retry`, and the factory resumes at build with the worktree as you left it, then verifies:
 
-![PR #55 body with the operator takeover row](docs/demo/lightning-2/gh-pr55-body.png)
+![Nudge applied, build green](docs/demo/lightning-2/14-takeover-nudge-done.png)
+![Handback](docs/demo/lightning-2/15-takeover-handback.png)
 
-### Step 6: the whole run
+Verify came back `uncertain`: its revert-and-fail check needs a write, and verify is read-only. The operator
+ran that check by hand in a scratch worktree (the leak test fails on `main`, passes with the fix), posted the
+evidence, and ran `bin/factory inbox 76 retry --repo learnwithparam/splitbill-demo`. The second verify passed:
 
-![Line at the end of the run](docs/demo/lightning-2/dash-05-line.png)
-![Analytics](docs/demo/lightning-2/dash-05-analytics.png)
+![#76 operator check, retry, pass](docs/demo/lightning-2/22-issue-76-handback.png)
+
+[PR #83](https://github.com/learnwithparam/splitbill-demo/pull/83)'s run table records the takeover as its
+own build row, both verdicts, and the two retries under "Needed help":
+
+![PR #83 run table](docs/demo/lightning-2/21-pr-83-takeover-run-table.png)
+
+### Step 6: the whole run in the dashboard
+
+![Inbox](docs/demo/lightning-2/16-dash-inbox.png)
+![Line](docs/demo/lightning-2/17-dash-line.png)
+![Runs](docs/demo/lightning-2/18-dash-runs.png)
+![Run sheet for #73](docs/demo/lightning-2/19-dash-run-73.png)
+![Analytics](docs/demo/lightning-2/20-dash-analytics.png)
 
 Close with `bin/factory reset --repo-dir ../splitbill-demo --dry-run`, then the reset, then stop the
 watcher with Ctrl-C.
 
-### What this run found (fixed in v2.12.1)
+### Replay this run after reset
 
-1. **A parked `/factory retry` re-fired every poll.** An `uncertain` verify parked without a comment, so
-   the retry stayed the latest human comment. PR #53's run table shows three build and verify rounds from
-   one retry.
-2. **An uncertain verdict was not posted**, so `needs-human` had no reason on GitHub.
-3. **A PR `/factory revise` changed nothing.** Only the plan skill read `revise.md`; build saw a finished
-   plan (PR #54).
+`reset` wipes the run's database and worktrees. Before it, snapshot them; afterwards, serve the snapshot on
+its own port. From `factory/`:
 
-All three are fixed in [software-factory PR #23](https://github.com/learnwithparam/software-factory/pull/23).
-Also note: a chatops command must start the comment. `/factory retry` on the last line of a longer comment
-is ignored.
+```bash
+teach/demo/lightning-2.sh snapshot        # factory.db + .factory/runs/ into ~/.factory/recordings/lightning-2/v<version>/snapshot
+teach/demo/lightning-2.sh replay          # dashboard on http://127.0.0.1:4101
+```
+
+Line, Runs, run sheets and Analytics come from the snapshot. Inbox and issue threads are live GitHub, and
+an Act button posts a real comment. This run's snapshot is 508K and lives on the presenter's machine.
+
+![Replay: the line](docs/demo/lightning-2/23-replay-line.png)
+![Replay: run sheet for #76](docs/demo/lightning-2/24-replay-run-76.png)
+
+### What this run found (for v2.13)
+
+1. **Verify cannot revert.** Its revert-and-fail check writes a file, which a read-only verify denies, so a
+   correct fix comes back `uncertain` (#73 once, #76 once). The live fallback is an operator check, then
+   `inbox <N> retry`.
+2. **A stale thread overwrote a newer verdict.** The pr stage rehydrated `.factory/runs/` from an issue
+   thread fetched before the pass verdict, so #76's `verdict.json` reads `uncertain`. The PR table and the
+   database are correct.
+3. **`takeover --repo` hung** on a fresh clone. Use `--repo-dir`.
+4. **`/factory cancel` ran twice** on #78 (two retro rows), and the second recreated the `issue-78` folder.
+5. **A budget park retried at plan**, so #74 needed a second approve.
+6. **The park reason** stores the whole denied command, and is not cleared when the run resumes.
+7. **Analytics "Cost by model" shows `unknown`**: the model is not recorded per stage.
+8. **The takeover trust hint prints** even when the folder is already trusted.
+
+Run 2 (v2.12.0) found three bugs, fixed in v2.12.1 by
+[software-factory PR #23](https://github.com/learnwithparam/software-factory/pull/23). A chatops command must
+start the comment: `/factory retry` on the last line of a longer comment is ignored.
 
 ## By release
 
