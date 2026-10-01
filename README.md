@@ -32,6 +32,13 @@ bun run dev
 run it creates `splitbill.sqlite` and seeds two demo groups. Set `PORT` to
 change the port and `SPLITBILL_DB` to use a different database file.
 
+With the server running, list the groups over the API (no token needed):
+
+```sh
+$ curl http://localhost:3200/api/groups
+{"groups":[{"id":"goa-trip","name":"Goa trip"},{"id":"flat-4b","name":"Flat 4B"}]}
+```
+
 The CLI reads the same database:
 
 ```sh

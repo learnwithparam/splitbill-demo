@@ -3,6 +3,7 @@ import { Database } from "bun:sqlite";
 import { initSchema } from "../src/db.ts";
 import { seedDemoData } from "../src/seed.ts";
 import { run } from "../src/cli.ts";
+import { createApp } from "../src/server.ts";
 import pkg from "../package.json";
 
 const root = new URL("../", import.meta.url);
@@ -54,5 +55,16 @@ describe("README Run it section", () => {
     seedDemoData(db);
     const shown = exampleOutput(section, "bun run src/cli.ts groups");
     expect(columns(shown)).toEqual(columns(run(["groups"], db).split("\n")));
+  });
+
+  test("Run it curl example matches real GET /api/groups output", async () => {
+    const section = await runItSection();
+    const db = new Database(":memory:");
+    initSchema(db);
+    seedDemoData(db);
+    const shown = exampleOutput(section, "curl http://localhost:3200/api/groups");
+    const res = await createApp(db).request("/api/groups");
+    expect(res.status).toBe(200);
+    expect(JSON.parse(shown.join("\n"))).toEqual(await res.json());
   });
 });
