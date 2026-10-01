@@ -1,6 +1,7 @@
 {
   "base": "main",
   "baselineTag": "baseline",
+  "resettable": true,
   "agentCommands": {
     "read": [],
     "build": [
