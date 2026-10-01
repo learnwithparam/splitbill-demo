@@ -1,8 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
-import { initSchema } from "../src/db.ts";
-import { seedDemoData } from "../src/seed.ts";
-import { run } from "../src/cli.ts";
 
 const root = new URL("../", import.meta.url);
 
@@ -32,19 +28,26 @@ describe("README Run it section", () => {
     expect(section).toContain("http://localhost:3200");
 
     const pkg = JSON.parse(await readText("package.json"));
-    expect(pkg.scripts.dev).toBeDefined();
+    expect(pkg.scripts.dev).toContain("src/server.ts");
     const server = await readText("src/server.ts");
-    expect(server).toContain("process.env.PORT ?? 3200");
+    expect(server).toMatch(/PORT\s*\?\?\s*3200\b/);
   });
 
   test("Run it section has a working CLI example", async () => {
     expect(await runItSection()).toContain("bun run src/cli.ts groups");
 
-    const db = new Database(":memory:");
-    initSchema(db);
-    seedDemoData(db);
-    const output = run(["groups"], db);
-    expect(output).not.toBe("(no groups)");
+    // Run the documented command as a fresh process against an empty
+    // in-memory DB, so it covers the CLI's own seeding on a clean clone
+    // without touching the on-disk splitbill.sqlite.
+    const proc = Bun.spawn(["bun", "run", "src/cli.ts", "groups"], {
+      cwd: root.pathname,
+      env: { ...process.env, SPLITBILL_DB: ":memory:" },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const output = await new Response(proc.stdout).text();
+    expect(await proc.exited).toBe(0);
+    expect(output).not.toContain("(no groups)");
     expect(output).not.toContain("Usage:");
     expect(output).toContain("goa-trip");
   });

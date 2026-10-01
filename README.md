@@ -24,7 +24,8 @@ bun run dev
 `bun run dev` serves the web page and API on http://localhost:3200 (set
 `PORT` to change it) and seeds demo data on first run.
 
-The CLI reads the same database:
+The CLI uses the same `splitbill.sqlite` and seeds it if empty, so it
+works without starting the server first:
 
 ```sh
 bun run src/cli.ts groups
