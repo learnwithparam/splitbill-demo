@@ -38,6 +38,15 @@ describe("splitbill export", () => {
     const output = run(["export", "flat-4b"], setupDb());
     expect(output.split("\n")[0]).toBe("date,payer,description,amount");
   });
+
+  test("export rows end in a formatted amount", () => {
+    const output = run(["export", "flat-4b"], setupDb());
+    const rows = output.trimEnd().split("\n").slice(1);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.split(",").at(-1)).toMatch(/^-?\d+\.\d{2}$/);
+    }
+  });
 });
 
 describe("splitbill with no command", () => {
