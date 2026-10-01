@@ -14,6 +14,22 @@ transfers.
 - A CLI (`groups`, `balances <group>`, `export <group>`) alongside the web
   page and API.
 
+## Run it
+
+```sh
+bun install
+bun run dev
+```
+
+`bun run dev` serves the web page and API on http://localhost:3200 (set
+`PORT` to change it) and seeds demo data on first run.
+
+The CLI reads the same database:
+
+```sh
+bun run src/cli.ts groups
+```
+
 ## Stack
 
 Bun, TypeScript, Hono, `bun:sqlite`. No build step for the web page
