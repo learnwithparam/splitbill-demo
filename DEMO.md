@@ -167,3 +167,8 @@ sandbox blocks execution under `.factory/**`), and instead reproduced each gate 
 graded. It escalated rather than guess. This is the harness working as designed: a correct fix still goes to
 a human when the evidence backing it goes stale, which is a real edge of the same "when the factory stops"
 guarantee the reject-rebuild loop gives you, not a failure of it.
+
+The baseline's `holdout.cmd` runs only the settle-up suite. `csv-export.holdout.test.ts` stays in
+`holdout.paths`, so agents never see it, but it is not run: at baseline the seeded CSV defect makes it fail,
+and verify fails on any holdout failure, which would reject every unrelated issue. Add it back to `cmd` in the
+same PR that fixes issue #11.
