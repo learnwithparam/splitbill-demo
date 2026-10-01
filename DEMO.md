@@ -69,6 +69,144 @@ reset puts `main` back on the baseline. The factory never merges.
 `main` is protected, so rewinding it needs "Allow force pushes" on for you (Settings, Branches). Turn it on
 first; if it is off the reset fails on its first push and changes nothing. Turn it off again afterwards.
 
+## Lightning-2: step by step (v2.12.0 run, 2026-10-01)
+
+A real run of `teach/lightning-2.md` from software-factory, on runner v2.12.0. The links open the exact
+issues and PRs from this run. `reset` closed them afterwards and reseeded the tickets under new numbers,
+but they stay readable on GitHub. Screenshots are in `docs/demo/lightning-2/`.
+
+| Ticket | Issue | PR | Outcome |
+|---|---|---|---|
+| README has no run steps or CLI example | [#46](https://github.com/learnwithparam/splitbill-demo/issues/46) | [#54](https://github.com/learnwithparam/splitbill-demo/pull/54) | PR opened, then a revise that changed nothing (bug 3) |
+| Splitting $10.00 three ways loses a cent | [#47](https://github.com/learnwithparam/splitbill-demo/issues/47) | [#53](https://github.com/learnwithparam/splitbill-demo/pull/53) | PR ready, verdict pass |
+| CSV export shows raw cents | [#48](https://github.com/learnwithparam/splitbill-demo/issues/48) | [#55](https://github.com/learnwithparam/splitbill-demo/pull/55) | operator takeover mid-build, then PR ready |
+| Any group member can delete any other member's expense | [#50](https://github.com/learnwithparam/splitbill-demo/issues/50) | none | refused at triage: protected path |
+| Upgrade hono 3.12.12 to 4.x | [#51](https://github.com/learnwithparam/splitbill-demo/issues/51) | none | high-risk plan, cancelled |
+
+### Step 0: start clean
+
+```bash
+bin/factory reset --repo-dir ../splitbill-demo
+bin/factory doctor --repo-dir ../splitbill-demo
+teach/demo/lightning-2.sh --tmux up       # watch + dashboard on :4100, one tmux window per issue
+```
+
+In `splitbill-demo/`, run `git switch -c my-feature` and leave one unstaged edit in `README.md`.
+
+### Step 1: a worktree for every task
+
+Label [#46](https://github.com/learnwithparam/splitbill-demo/issues/46) and
+[#47](https://github.com/learnwithparam/splitbill-demo/issues/47) `factory:ready`. Both are claimed and run
+in parallel, each in its own worktree on its own `factory/issue-N` branch.
+
+![Two issues on the line at once](docs/demo/lightning-2/dash-01-line-two-worktrees.png)
+![Runs page with both worktrees](docs/demo/lightning-2/dash-01-runs-two-worktrees.png)
+
+Triage and plan land on the issue as comments:
+
+![#46 triage](docs/demo/lightning-2/gh-46-triage.png)
+![#46 plan](docs/demo/lightning-2/gh-46-plan.png)
+
+Then label [#51](https://github.com/learnwithparam/splitbill-demo/issues/51) (hono). Its plan is high risk,
+so it stops at `factory:awaiting-approval`. Comment `/factory cancel`: the issue closes, its worktree is
+removed, and the `factory/issue-51` branch is kept.
+
+![#51 high-risk plan](docs/demo/lightning-2/gh-51-plan-high-risk.png)
+![/factory cancel](docs/demo/lightning-2/gh-51-cancel-command.png)
+![Cancelled, branch kept](docs/demo/lightning-2/gh-51-cancelled.png)
+
+### Step 2: sandbox boundaries
+
+Show what bounds an agent: [.factory/config.json](https://github.com/learnwithparam/splitbill-demo/blob/main/.factory/config.json)
+(`agentCommands`, gates, `protectedPaths`) and
+[.claude/hooks/guard-paths.sh](https://github.com/learnwithparam/splitbill-demo/blob/main/.claude/hooks/guard-paths.sh).
+
+![config.json](docs/demo/lightning-2/gh-config.png)
+![guard-paths.sh](docs/demo/lightning-2/gh-guard-paths.png)
+
+Label [#50](https://github.com/learnwithparam/splitbill-demo/issues/50). The fix needs
+`src/auth/permissions.ts`, a protected path, so triage refuses it. Nothing is planned or built.
+
+![#50 refused at triage](docs/demo/lightning-2/gh-50-triage-refused.png)
+
+### Step 3: one execution harness
+
+Follow #46 and #47 through build, verify and PR. While they run, the line shows each stage live, and
+anything waiting on a human collects in the inbox.
+
+![Verify running](docs/demo/lightning-2/dash-02-line-verifying.png)
+![Inbox: the hono plan and a parked issue](docs/demo/lightning-2/dash-03-inbox-hono-and-parked.png)
+
+Both verdicts are posted on the issue:
+
+![#46 verdict](docs/demo/lightning-2/gh-46-verdict.png)
+![#47 verdict](docs/demo/lightning-2/gh-47-verdict.png)
+
+[PR #53](https://github.com/learnwithparam/splitbill-demo/pull/53) closes #47 and carries the plan, gate
+evidence, verdict, risk and the "Factory run" table:
+
+![PR #53 body](docs/demo/lightning-2/gh-pr53-body.png)
+
+On [PR #54](https://github.com/learnwithparam/splitbill-demo/pull/54), comment
+`/factory revise add a curl example for GET /api/groups`:
+
+![/factory revise on PR #54](docs/demo/lightning-2/gh-pr54-revise.png)
+
+On v2.12.0 this reran build, but nothing changed. Bug 3 below has the cause.
+
+### Step 4: your branch stays isolated
+
+In `splitbill-demo/`:
+
+```bash
+git status --short
+git branch --show-current
+git worktree list
+```
+
+You are still on `my-feature` with the one edit, and every factory worktree sits beside your checkout under
+`~/.factory/`.
+
+![my-feature untouched](docs/demo/lightning-2/tmux-11-my-branch-untouched.png)
+
+### Step 5: watch and take over
+
+Label [#48](https://github.com/learnwithparam/splitbill-demo/issues/48). Mid-build, run
+`bin/factory takeover 48`. The issue's Claude session resumes in your terminal, and the issue says so:
+
+![Taken over](docs/demo/lightning-2/gh-48-takeover.png)
+
+Steer it ("add a test that a 1-cent expense exports as 0.01"), then `/exit`. The handback posts
+`/factory retry`, and the factory resumes at build with the worktree as you left it:
+
+![Handback](docs/demo/lightning-2/gh-48-handback.png)
+
+[PR #55](https://github.com/learnwithparam/splitbill-demo/pull/55)'s "Factory run" table records the
+takeover as its own build row:
+
+![PR #55 body with the operator takeover row](docs/demo/lightning-2/gh-pr55-body.png)
+
+### Step 6: the whole run
+
+![Line at the end of the run](docs/demo/lightning-2/dash-05-line.png)
+![Analytics](docs/demo/lightning-2/dash-05-analytics.png)
+
+Close with `bin/factory reset --repo-dir ../splitbill-demo --dry-run`, then the reset, then stop the
+watcher with Ctrl-C.
+
+### What this run found (fixed in v2.12.1)
+
+1. **A parked `/factory retry` re-fired every poll.** An `uncertain` verify parked without a comment, so
+   the retry stayed the latest human comment. PR #53's run table shows three build and verify rounds from
+   one retry.
+2. **An uncertain verdict was not posted**, so `needs-human` had no reason on GitHub.
+3. **A PR `/factory revise` changed nothing.** Only the plan skill read `revise.md`; build saw a finished
+   plan (PR #54).
+
+All three are fixed in [software-factory PR #23](https://github.com/learnwithparam/software-factory/pull/23).
+Also note: a chatops command must start the comment. `/factory retry` on the last line of a longer comment
+is ignored.
+
 ## By release
 
 Each section names one thing to show for that factory release. Run them from `../factory`.
@@ -172,3 +310,10 @@ The baseline's `holdout.cmd` runs only the settle-up suite. `csv-export.holdout.
 `holdout.paths`, so agents never see it, but it is not run: at baseline the seeded CSV defect makes it fail,
 and verify fails on any holdout failure, which would reject every unrelated issue. Add it back to `cmd` in the
 same PR that fixes issue #11.
+
+### v2.12.0: watch and take over
+
+`factory watch --tmux` gives each running issue its own tmux window, `factory attach <N>` jumps to it, and
+`factory takeover <N>` hands the stage's Claude session to you; `/exit` hands it back with `/factory retry`.
+The PR body gains a "Factory run" table (stage, agent, duration, tool calls, cost, outcome), and
+`factory doctor` reports skill drift. Step 5 above shows all of it on a real run.
