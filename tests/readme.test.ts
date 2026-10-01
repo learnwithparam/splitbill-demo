@@ -55,9 +55,14 @@ describe("README Run it section", () => {
       env: { ...process.env, SPLITBILL_DB: ":memory:" },
       stdout: "pipe",
       stderr: "pipe",
+      timeout: 4000,
     });
-    const output = await new Response(proc.stdout).text();
-    expect(await proc.exited).toBe(0);
+    const [output, err, code] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    expect({ code, err }).toEqual({ code: 0, err: "" });
     expect(output).not.toContain("(no groups)");
     expect(output).not.toContain("Usage:");
     expect(output).toContain("goa-trip");
