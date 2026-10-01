@@ -19,6 +19,30 @@ transfers.
 Bun, TypeScript, Hono, `bun:sqlite`. No build step for the web page
 (`public/index.html` is served as-is).
 
+## Run it
+
+You need [Bun](https://bun.sh). From a clean clone:
+
+```sh
+bun install
+bun run dev
+```
+
+`bun run dev` serves the web page and API on http://localhost:3200. On first
+run it creates `splitbill.sqlite` and seeds two demo groups. Set `PORT` to
+change the port and `SPLITBILL_DB` to use a different database file.
+
+The CLI reads the same database:
+
+```sh
+$ bun run src/cli.ts groups
+goa-trip	Goa trip
+flat-4b	Flat 4B
+```
+
+Try `bun run src/cli.ts balances goa-trip` or
+`bun run src/cli.ts export flat-4b` next.
+
 ## Layout
 
 ```
