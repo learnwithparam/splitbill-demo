@@ -1,4 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { Database } from "bun:sqlite";
+import { initSchema } from "../src/db.ts";
+import { seedDemoData } from "../src/seed.ts";
+import { run } from "../src/cli.ts";
 
 const root = new URL("../", import.meta.url);
 
@@ -35,6 +39,13 @@ describe("README Run it section", () => {
 
   test("Run it section has a working CLI example", async () => {
     expect(await runItSection()).toContain("bun run src/cli.ts groups");
+
+    const db = new Database(":memory:");
+    initSchema(db);
+    seedDemoData(db);
+    const listed = run(["groups"], db);
+    expect(listed).not.toContain("(no groups)");
+    expect(listed).not.toContain("Usage:");
 
     // Run the documented command as a fresh process against an empty
     // in-memory DB, so it covers the CLI's own seeding on a clean clone
