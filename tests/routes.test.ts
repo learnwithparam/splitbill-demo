@@ -88,6 +88,28 @@ describe("GET /api/groups/:id/expenses", () => {
     expect(body.expenses.length).toBe(1);
     expect(body.expenses[0]?.description).toBe("Fuel");
   });
+
+  test("search does not leak other groups' expenses", async () => {
+    const app = setupApp();
+    // limit=100: Flat 4B's rows are older than all 25 Goa rows, so a default page hides them.
+    const q = encodeURIComponent("' OR 1=1 --");
+    const res = await app.request(`/api/groups/goa-trip/expenses?q=${q}&limit=100`, { headers: auth("goa-asha") });
+    const body = await asJson<{ expenses: { groupId: string; description: string }[] }>(res);
+    const flatDescriptions = ["Electricity bill", "Groceries", "Internet bill"];
+    expect(body.expenses.filter((e) => e.groupId === "flat-4b")).toEqual([]);
+    expect(body.expenses.filter((e) => flatDescriptions.includes(e.description))).toEqual([]);
+  });
+
+  test("search treats quotes in the term as literal text", async () => {
+    const app = setupApp();
+    const q = encodeURIComponent("it's");
+    const res = await app.request(`/api/groups/goa-trip/expenses?q=${q}`, { headers: auth("goa-asha") });
+    expect(res.status).toBe(200);
+    const body = await asJson<ExpensesListBody & { error?: unknown }>(res);
+    // A SQL error must never pass as an empty list.
+    expect(body).not.toHaveProperty("error");
+    expect(body.expenses.length).toBe(0);
+  });
 });
 
 describe("POST and DELETE /api/groups/:id/expenses", () => {
