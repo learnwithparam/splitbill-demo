@@ -1,5 +1,5 @@
 {
-  "base": "main",
+  "base": "factory-v3",
   "baselineTag": "baseline",
   "resettable": true,
   "agentCommands": {
@@ -44,7 +44,10 @@
     ".github/**"
   ],
   "holdout": {
-    "paths": [".factory/holdout/settle-up.holdout.test.ts", ".factory/holdout/csv-export.holdout.test.ts"],
+    "paths": [
+      ".factory/holdout/settle-up.holdout.test.ts",
+      ".factory/holdout/csv-export.holdout.test.ts"
+    ],
     "cmd": "bun test ./.factory/holdout/settle-up.holdout.test.ts"
   },
   "riskPolicy": {
