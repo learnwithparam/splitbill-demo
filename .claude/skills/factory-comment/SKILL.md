@@ -14,15 +14,15 @@ reads like a triage comment on issue #40.
 1. Pick the template in `assets/` that matches what you're writing:
    `triage.md`, `question.md`, `plan.md`, `status.md`, `verdict.md`.
 2. Fill every placeholder (`{{like_this}}`). Do not leave a placeholder in the
-   output — if a field has nothing to say, write "none" or "n/a", never
+   output; if a field has nothing to say, write "none" or "n/a", never
    silence.
 3. Keep the hidden marker on its own first line, exactly as written in the
    template (`<!-- factory:triage v1 -->`, etc.). The runner parses it; a
    missing or altered marker means the comment is invisible to the loop.
 4. Write the finished comment to the file the calling skill tells you to
    (normally `.factory/runs/issue-<N>/<stage>-comment.md`). You do not call
-   `gh` yourself — the runner posts what you write (see `factory-build`'s
-   note on why: settings.json denies `gh` and `git push` to every stage).
+   `gh` yourself: settings.json denies `gh` and `git push` to every stage,
+   and the runner posts what you write.
 5. Plain language, short sentences. No em dashes. A person reading only this
    comment, with no other context, should understand the decision and why.
 
