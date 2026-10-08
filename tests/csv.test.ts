@@ -47,4 +47,21 @@ describe("exportCsv", () => {
     });
     expect(amountColumn(exportCsv(db, "odd"))).toEqual(["10.05", "0.05"]);
   });
+
+  test("exportCsv formats an amount under one dollar with a leading zero", () => {
+    const db = setupDb();
+    db.query("INSERT INTO groups (id, name) VALUES (?, ?)").run("small", "Small amounts");
+    const base = Date.parse("2026-10-02T09:00:00.000Z");
+    [5, 50, 99].forEach((amountCents, i) => {
+      createExpense(db, {
+        groupId: "small",
+        payerId: "flat-priya-id",
+        amountCents,
+        description: `Small ${amountCents}`,
+        splitAmong: ["flat-priya-id"],
+        createdAt: new Date(base + i * 1000).toISOString(),
+      });
+    });
+    expect(amountColumn(exportCsv(db, "small"))).toEqual(["0.05", "0.50", "0.99"]);
+  });
 });
