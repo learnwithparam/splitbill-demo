@@ -38,6 +38,12 @@ describe("splitbill export", () => {
     const output = run(["export", "flat-4b"], setupDb());
     expect(output.split("\n")[0]).toBe("date,payer,description,amount");
   });
+
+  test("splitbill export prints formatted amounts", () => {
+    const output = run(["export", "flat-4b"], setupDb());
+    expect(output).toContain(",Electricity bill,45.00");
+    expect(output).not.toContain(",4500");
+  });
 });
 
 describe("splitbill with no command", () => {
