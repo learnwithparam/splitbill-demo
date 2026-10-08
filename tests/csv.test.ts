@@ -40,6 +40,12 @@ describe("exportCsv", () => {
     expect(row?.split(",").at(-1)).toBe("10.05");
   });
 
+  test("exportCsv pads an amount under one dollar (5 -> 0.05)", () => {
+    const db = setupDb([5]);
+    const [row] = dataRows(exportCsv(db, "g1"));
+    expect(row?.split(",").at(-1)).toBe("0.05");
+  });
+
   test("exportCsv keeps the header and one row per expense", () => {
     const db = setupDb([1000, 1005, 7]);
     const lines = exportCsv(db, "g1").trim().split("\n");
