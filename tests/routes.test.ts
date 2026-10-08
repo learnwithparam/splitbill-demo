@@ -138,4 +138,14 @@ describe("GET /api/groups/:id/export.csv", () => {
     expect(lines[0]).toBe("date,payer,description,amount");
     expect(lines.length).toBe(4); // header + 3 seeded Flat 4B expenses
   });
+
+  test("amount column is formatted, not raw cents", async () => {
+    const app = setupApp();
+    const res = await app.request("/api/groups/flat-4b/export.csv", { headers: auth("flat-priya") });
+    const rows = (await res.text()).trim().split("\n").slice(1);
+    expect(rows.map((r) => r.split(",").at(-1))).toEqual(["45.00", "12.00", "30.00"]);
+    for (const row of rows) {
+      expect(row).not.toMatch(/,\d+$/);
+    }
+  });
 });
