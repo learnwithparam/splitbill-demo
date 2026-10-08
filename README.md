@@ -14,6 +14,27 @@ transfers.
 - A CLI (`groups`, `balances <group>`, `export <group>`) alongside the web
   page and API.
 
+## Run it
+
+```sh
+bun install
+bun run dev
+```
+
+`bun run dev` serves the web page and API on http://localhost:3200 (set
+`PORT` to change it) and seeds demo data into `splitbill.sqlite` on first
+run.
+
+Use the CLI against the same database:
+
+```sh
+bun run src/cli.ts groups
+bun run src/cli.ts balances goa-trip
+bun run src/cli.ts export goa-trip
+```
+
+Set `SPLITBILL_DB` to point either one at a different database file.
+
 ## Stack
 
 Bun, TypeScript, Hono, `bun:sqlite`. No build step for the web page
