@@ -50,6 +50,20 @@ describe("exportCsv", () => {
     expect(amountColumn(exportCsv(db, "flat-4b")).slice(-2)).toEqual(["10.05", "0.07"]);
   });
 
+  test("formats an amount under one dollar with a leading zero", () => {
+    const db = setupDb();
+    createExpense(db, {
+      groupId: "flat-4b",
+      payerId: "flat-priya-id",
+      amountCents: 5,
+      description: "Sweet",
+      splitAmong: ["flat-priya-id"],
+      createdAt: "2026-10-01T09:00:00.000Z",
+    });
+    const lines = exportCsv(db, "flat-4b").trim().split("\n");
+    expect(lines.at(-1)).toBe("2026-10-01T09:00:00.000Z,Priya,Sweet,0.05");
+  });
+
   test("seeded group export uses formatted amounts", () => {
     const csv = exportCsv(setupDb(), "flat-4b");
     expect(csv.split("\n")[0]).toBe("date,payer,description,amount");
