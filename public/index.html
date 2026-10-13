@@ -14,6 +14,8 @@
     .balance-pos { color: #147a3f; }
     .balance-neg { color: #b3261e; }
     #error { color: #b3261e; margin-top: 1rem; }
+    button { font: inherit; margin-top: 1.5rem; padding: 0.4rem 0.9rem; cursor: pointer; }
+    #export td:last-child, #export th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
   </style>
 </head>
 <body>
@@ -28,16 +30,57 @@
 
   <div id="error"></div>
   <div id="result"></div>
+  <button id="export-btn" hidden>Export CSV</button>
+  <div id="export"></div>
 
   <script>
     const tokenInput = document.getElementById("token");
     const groupInput = document.getElementById("group");
     const errorEl = document.getElementById("error");
     const resultEl = document.getElementById("result");
+    const exportBtn = document.getElementById("export-btn");
+    const exportEl = document.getElementById("export");
+
+    // One CSV line into cells; a quoted cell may hold commas and doubled quotes.
+    function csvCells(line) {
+      const cells = [];
+      let cell = "", quoted = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (quoted && ch === '"' && line[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') quoted = !quoted;
+        else if (ch === "," && !quoted) { cells.push(cell); cell = ""; }
+        else cell += ch;
+      }
+      return [...cells, cell];
+    }
+
+    // The export is drawn exactly as the file reads, so what the page shows is what a user downloads.
+    async function showExport() {
+      const groupId = groupInput.value.trim();
+      const res = await fetch(`/api/groups/${encodeURIComponent(groupId)}/export.csv`, {
+        headers: { Authorization: `Bearer ${tokenInput.value.trim()}` },
+      });
+      exportEl.replaceChildren();
+      if (!res.ok) {
+        errorEl.textContent = `Error ${res.status}: could not export`;
+        return;
+      }
+      const [header, ...rows] = (await res.text()).trim().split("\n").map(csvCells);
+      const cell = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
+      const row = (tag, cells) => { const tr = document.createElement("tr"); tr.append(...cells.map((c) => cell(tag, c))); return tr; };
+      const table = document.createElement("table");
+      table.append(document.createElement("thead"), document.createElement("tbody"));
+      table.tHead.append(row("th", header));
+      table.tBodies[0].append(...rows.map((r) => row("td", r)));
+      exportEl.append(cell("h3", "CSV export"), table);
+    }
 
     async function load() {
       errorEl.textContent = "";
       resultEl.innerHTML = "";
+      exportEl.replaceChildren();
+      exportBtn.hidden = true;
       const token = tokenInput.value.trim();
       const groupId = groupInput.value.trim();
       if (!token || !groupId) return;
@@ -77,10 +120,12 @@
         <h3>Expenses</h3>
         <table><thead><tr><th>Date</th><th>Payer</th><th>Description</th><th>Amount</th></tr></thead><tbody>${expenseRows}</tbody></table>
       `;
+      exportBtn.hidden = false;
     }
 
     tokenInput.addEventListener("change", load);
     groupInput.addEventListener("change", load);
+    exportBtn.addEventListener("click", showExport);
   </script>
 </body>
 </html>
