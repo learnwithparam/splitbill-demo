@@ -36,4 +36,16 @@ describe("splitCents", () => {
     const shares = splitCents(2000, ["a", "b"]);
     expect(sumCents(Object.values(shares))).toBe(2000);
   });
+
+  test("gives the leftover cent to the first member (issue #178)", () => {
+    const shares = splitCents(1000, ["a", "b", "c"]);
+    expect(shares).toEqual({ a: 334, b: 333, c: 333 });
+    expect(sumCents(Object.values(shares))).toBe(1000);
+  });
+
+  test("gives leftover cents to the first N members in order", () => {
+    const shares = splitCents(1001, ["a", "b", "c"]);
+    expect(shares).toEqual({ a: 334, b: 334, c: 333 });
+    expect(sumCents(Object.values(shares))).toBe(1001);
+  });
 });
