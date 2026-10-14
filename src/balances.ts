@@ -44,16 +44,45 @@ export function computeBalances(db: Database, groupId: string): MemberBalance[] 
   });
 }
 
-/** Minimal set of transfers that settles every balance to zero (greedy largest-first matching). */
+interface Party {
+  id: string;
+  amount: number; // cents still to receive (creditor) or pay (debtor)
+}
+
+/**
+ * Transfers that settle every balance to exactly zero, payable mostly in cash: the whole-dollar
+ * part of each balance is settled first, then the leftover cents with separate transfers under $1.
+ */
 export function settleUp(balances: MemberBalance[]): Transfer[] {
   const creditors = balances
     .filter((b) => b.netCents > 0)
-    .map((b) => ({ id: b.memberId, amount: b.netCents }))
-    .sort((a, b) => b.amount - a.amount);
+    .map((b) => ({ id: b.memberId, amount: b.netCents }));
   const debtors = balances
     .filter((b) => b.netCents < 0)
-    .map((b) => ({ id: b.memberId, amount: -b.netCents }))
-    .sort((a, b) => b.amount - a.amount);
+    .map((b) => ({ id: b.memberId, amount: -b.netCents }));
+
+  // Pass 1 moves only whole dollars, so every transfer is a multiple of 100. Afterwards one
+  // side has no whole dollars left, so each pass-2 transfer is under 100 cents.
+  const dollarPart = (p: Party): Party => ({ id: p.id, amount: Math.floor(p.amount / 100) * 100 });
+  const dollarCreditors = creditors.map(dollarPart);
+  const dollarDebtors = debtors.map(dollarPart);
+  const dollarTransfers = matchGreedy(dollarCreditors, dollarDebtors);
+
+  const settled = new Map<string, number>();
+  for (const t of dollarTransfers) {
+    settled.set(t.fromMemberId, (settled.get(t.fromMemberId) ?? 0) + t.amountCents);
+    settled.set(t.toMemberId, (settled.get(t.toMemberId) ?? 0) + t.amountCents);
+  }
+  const remainder = (p: Party): Party => ({ id: p.id, amount: p.amount - (settled.get(p.id) ?? 0) });
+  const centsTransfers = matchGreedy(creditors.map(remainder), debtors.map(remainder));
+
+  return [...dollarTransfers, ...centsTransfers];
+}
+
+/** Greedy largest-first matching of debtors to creditors, until one side runs out. */
+function matchGreedy(creditorsIn: Party[], debtorsIn: Party[]): Transfer[] {
+  const creditors = creditorsIn.filter((p) => p.amount > 0).sort((a, b) => b.amount - a.amount);
+  const debtors = debtorsIn.filter((p) => p.amount > 0).sort((a, b) => b.amount - a.amount);
 
   const transfers: Transfer[] = [];
   let ci = 0;
