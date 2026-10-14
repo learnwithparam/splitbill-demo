@@ -116,9 +116,6 @@ describe("POST and DELETE /api/groups/:id/expenses", () => {
 
 describe("GET /api/groups/:id/balances", () => {
   test("transfers settle every balance to zero net", async () => {
-    // Flat 4B's seeded amounts all divide evenly by its 3 members, so this
-    // fixture is unaffected by the splitCents remainder bug (issue #2) and
-    // exercises settle-up on its own.
     const app = setupApp();
     const res = await app.request("/api/groups/flat-4b/balances", { headers: auth("flat-priya") });
     const body = (await res.json()) as { balances: { netCents: number }[]; transfers: unknown[] };
