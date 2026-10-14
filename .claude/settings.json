@@ -16,6 +16,16 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-destructive.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Agent",
         "hooks": [
           {
@@ -38,6 +48,11 @@
             "type": "command",
             "command": ".claude/hooks/stop-verifier-evidence.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/stop-until-green.sh",
+            "timeout": 120
           }
         ]
       }
@@ -50,6 +65,17 @@
             "type": "command",
             "command": ".claude/hooks/post-edit-check.sh",
             "timeout": 90
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-secrets.sh",
+            "timeout": 10
           }
         ]
       }
