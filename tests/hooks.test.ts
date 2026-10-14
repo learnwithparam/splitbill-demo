@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 // Each hook reads the event as JSON on stdin; exit 2 is the block and stderr is the reason.
+// The factory runs this suite with FACTORY_STAGE set, which switches the hooks off, so each case starts without it.
 function hook(name: string, event: object, env: Record<string, string> = {}) {
-  const run = Bun.spawnSync([`.claude/hooks/${name}`], { stdin: Buffer.from(JSON.stringify(event)), env: { ...process.env, ...env } });
+  const outer = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("FACTORY_")));
+  const run = Bun.spawnSync([`.claude/hooks/${name}`], { stdin: Buffer.from(JSON.stringify(event)), env: { ...outer, ...env } });
   return { code: run.exitCode, reason: run.stderr.toString() };
 }
 
