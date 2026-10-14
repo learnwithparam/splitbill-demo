@@ -50,6 +50,7 @@ export function run(argv: string[], db: ReturnType<typeof openDb>): string {
 
   if (command === "export") {
     if (!arg) return "splitbill export <group-id>: missing group id";
+    if (!db.query("SELECT 1 FROM groups WHERE id = ?").get(arg)) return `no such group: ${arg}`;
     return exportCsv(db, arg).trimEnd();
   }
 
@@ -59,5 +60,7 @@ export function run(argv: string[], db: ReturnType<typeof openDb>): string {
 if (import.meta.main) {
   const db = openDb(process.env.SPLITBILL_DB ?? "splitbill.sqlite");
   seedDemoData(db);
-  console.log(run(process.argv.slice(2), db));
+  const output = run(process.argv.slice(2), db);
+  console.log(output);
+  if (output.startsWith("no such group: ")) process.exitCode = 1;
 }
