@@ -4,10 +4,13 @@
 set -euo pipefail
 n=${1:?usage: bin/fix-issue <issue number>}
 # The issue body becomes the prompt, so only a collaborator's issue runs.
-author=$(gh issue view "$n" --json author --jq .author.login)
+# One read, so the body checked is the body run, even if the issue is edited meanwhile.
+issue=$(gh issue view "$n" --json author,title,body)
+author=$(jq -r .author.login <<<"$issue")
+[[ $author =~ ^[A-Za-z0-9-]+$ ]] || { echo "#$n has an unexpected author. Not running it."; exit 1; }
 gh api "repos/{owner}/{repo}/collaborators/$author" --silent 2>/dev/null || { echo "#$n is from $author, not a collaborator. Not running it."; exit 1; }
-title=$(gh issue view "$n" --json title --jq .title)
-body=$(gh issue view "$n" --json body --jq .body)
+title=$(jq -r .title <<<"$issue")
+body=$(jq -r .body <<<"$issue")
 log=".claude/worktrees/issue-$n.jsonl"
 mkdir -p .claude/worktrees
 
