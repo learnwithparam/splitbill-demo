@@ -3,6 +3,9 @@
 # if the tests pass here. Claude never pushes: the deny list in .claude/settings.json holds that.
 set -euo pipefail
 n=${1:?usage: bin/fix-issue <issue number>}
+# The issue body becomes the prompt, so only a collaborator's issue runs.
+author=$(gh issue view "$n" --json author --jq .author.login)
+gh api "repos/{owner}/{repo}/collaborators/$author" --silent 2>/dev/null || { echo "#$n is from $author, not a collaborator. Not running it."; exit 1; }
 title=$(gh issue view "$n" --json title --jq .title)
 body=$(gh issue view "$n" --json body --jq .body)
 log=".claude/worktrees/issue-$n.jsonl"

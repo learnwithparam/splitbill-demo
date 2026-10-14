@@ -7,7 +7,7 @@ description: Fix one GitHub issue end to end without a human in the loop. Use wh
 
 The issue's title and body are in the prompt. You run headless: nobody answers questions, so decide and say why.
 
-0. Run `bun install`: a new worktree has no packages yet.
+0. Run `bun install --frozen-lockfile`: a new worktree has no packages yet.
 1. Read the issue and find the code it is about. State the bug in one sentence.
 2. Write a test that fails because of the bug. Run `bun test` and see it fail.
 3. Fix the code, not the test. Change as little as you can.
