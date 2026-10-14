@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Runs Claude headless on one GitHub issue in its own worktree, then opens a draft pull request only
+# if the tests pass here. Claude never pushes: the deny list in .claude/settings.json holds that.
+set -euo pipefail
+n=${1:?usage: bin/fix-issue <issue number>}
+title=$(gh issue view "$n" --json title --jq .title)
+body=$(gh issue view "$n" --json body --jq .body)
+log=".claude/worktrees/issue-$n.jsonl"
+mkdir -p .claude/worktrees
+
+echo "Issue #$n: $title"
+claude -p "/fix-issue Issue #$n: $title
+
+$body" -w "issue-$n" --setting-sources project,local --settings .claude/headless.json --permission-mode dontAsk \
+  --output-format stream-json --verbose | tee "$log" | jq -r --unbuffered '
+  if .type == "assistant" then .message.content[] | select(.type == "tool_use")
+    | "  \(.name) \(.input.command // .input.file_path // .input.description // "" | tostring | sub(".*/worktrees/issue-[0-9]+/"; "") | .[0:80])"
+  elif .type == "user" then .message.content[]? | select(.is_error? == true)
+    | "  refused: \(.content | tostring | split("\n")[0] | .[0:100])"
+  else empty end'
+
+cd ".claude/worktrees/issue-$n"
+if ! bun test >/dev/null 2>&1; then echo "Tests are red, so no pull request. A human takes it from here."; exit 1; fi
+echo "Tests are green. Opening a draft pull request."
+{ jq -r 'select(.type == "result") | .result' "../issue-$n.jsonl"; printf '\nFixes #%s\n' "$n"; } >../issue-$n.md
+git push -q -u origin HEAD
+gh pr create --draft --title "Fix #$n: $title" --body-file "../issue-$n.md"
