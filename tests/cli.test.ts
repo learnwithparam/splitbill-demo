@@ -38,6 +38,20 @@ describe("splitbill export", () => {
     const output = run(["export", "flat-4b"], setupDb());
     expect(output.split("\n")[0]).toBe("date,payer,description,amount");
   });
+
+  test("export reports an unknown group", () => {
+    const output = run(["export", "no-such-group"], setupDb());
+    expect(output).toBe("no such group: no-such-group");
+    expect(output).not.toContain("date,payer,description,amount");
+  });
+
+  test("export exits non-zero for an unknown group", () => {
+    const result = Bun.spawnSync(["bun", "src/cli.ts", "export", "no-such-group"], {
+      env: { ...process.env, SPLITBILL_DB: ":memory:" },
+    });
+    expect(result.stdout.toString().trim()).toBe("no such group: no-such-group");
+    expect(result.exitCode).not.toBe(0);
+  });
 });
 
 describe("splitbill with no command", () => {
